@@ -38,6 +38,72 @@ app.get("/liste-articles", (req, res) => {
   });
 });
 
+// Route pour récupérer un article par son ID
+app.get("/article/:id", (req, res) => {
+  const articleId = req.params.id;
+  connection.query(
+    "SELECT * FROM article WHERE id = ?",
+    [articleId],
+    (err, results) => {
+      if (err) {
+        console.error("Erreur lors de la récupération de l'article :", err);
+        res.status(500).send("Erreur serveur");
+        return;
+      }
+      if (results.length === 0) {
+        res.status(404).send("Article non trouvé");
+        return;
+      }
+      res.json(results[0]);
+    }
+  );
+});
+
+// Route pour créer un nouvel article
+app.post("/article", (req, res) => {
+  const article = req.body;
+  connection.query("INSERT INTO article SET ?", article, (err, result) => {
+    if (err) {
+      console.error("Erreur lors de la création de l'article :", err);
+      res.status(500).send("Erreur serveur");
+      return;
+    }
+    article.id = result.insertId;
+    res.status(201).json(article);
+  });
+});
+
+// Route pour mettre à jour un article
+app.put("/article/:id", (req, res) => {
+  const articleId = req.params.id;
+  const article = req.body;
+  connection.query(
+    "UPDATE article SET ? WHERE id = ?",
+    [article, articleId],
+    (err) => {
+      if (err) {
+        console.error("Erreur lors de la mise à jour de l'article :", err);
+        res.status(500).send("Erreur serveur");
+        return;
+      }
+      res.sendStatus(200);
+    }
+  );
+});
+
+// Route pour supprimer un article
+app.delete("/article/:id", (req, res) => {
+  const articleId = req.params.id;
+  connection.query("DELETE FROM article WHERE id = ?", [articleId], (err) => {
+    if (err) {
+      console.error("Erreur lors de la suppression de l'article :", err);
+      res.status(500).send("Erreur serveur");
+      return;
+    }
+    res.sendStatus(204);
+  });
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
