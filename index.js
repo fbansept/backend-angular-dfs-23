@@ -3,6 +3,8 @@ const multer = require("multer");
 const app = express();
 const cors = require("cors");
 const mysql = require("mysql");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 app.use(cors());
 
@@ -103,6 +105,92 @@ app.delete("/article/:id", (req, res) => {
     }
     res.sendStatus(204);
   });
+});
+
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  // Vérifier si l'utilisateur existe dans la base de données
+  connection.query(
+    "SELECT * FROM user WHERE email = ?",
+    [email],
+    (err, results) => {
+      if (err) {
+        throw err;
+      }
+
+      if (results.length === 0) {
+        return res.status(401).json({ message: "Adresse e-mail incorrecte" });
+      }
+
+      const user = results[0];
+
+      // Vérifier le mot de passe
+      bcrypt.compare(password, user.password, (bcryptErr, bcryptResult) => {
+        if (bcryptErr || !bcryptResult) {
+          return res.status(401).json({ message: "Mot de passe incorrect" });
+        }
+
+        // Générer un token JWT
+        const token = jwt.sign(
+          { email: user.email, admin: user.admin },
+          "your_secret_key",
+          { expiresIn: "1d" } // Expiration du token
+        );
+
+        // Retourner le token JWT
+        res.json({ token });
+      });
+    }
+  );
+});
+
+// Point de terminaison pour l'inscription
+app.post("/signup", (req, res) => {
+  const { email, password, admin } = req.body;
+
+  // Vérifier si l'utilisateur existe déjà dans la base de données
+  connection.query(
+    "SELECT * FROM user WHERE email = ?",
+    [email],
+    (err, results) => {
+      if (err) {
+        throw err;
+      }
+
+      if (results.length > 0) {
+        return res.status(409).json({ message: "Cet utilisateur existe déjà" });
+      }
+
+      // Hasher le mot de passe avant de l'enregistrer dans la base de données
+      bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
+        if (hashErr) {
+          throw hashErr;
+        }
+
+        // Insérer le nouvel utilisateur dans la base de données
+        connection.query(
+          "INSERT INTO user (email, password, admin) VALUES (?, ?, ?)",
+          [email, hashedPassword, admin],
+          (insertErr, insertResult) => {
+            if (insertErr) {
+              throw insertErr;
+            }
+
+            // Générer un token JWT pour l'utilisateur nouvellement inscrit
+            const token = jwt.sign(
+              { email, admin },
+              "your_secret_key",
+              { expiresIn: "1h" } // Expiration du token
+            );
+
+            // Retourner le token JWT
+            res.json({ token });
+          }
+        );
+      });
+    }
+  );
 });
 
 const PORT = 3000;
