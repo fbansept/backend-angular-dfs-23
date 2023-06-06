@@ -86,7 +86,8 @@ app.put("/article/:id", (req, res) => {
         res.status(500).send("Erreur serveur");
         return;
       }
-      res.sendStatus(200);
+      //NOK -> res.sendStatus(200);
+      res.status(200).json(article);
     }
   );
 });
