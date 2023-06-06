@@ -16,6 +16,25 @@ const connection = mysql.createConnection({
   database: "backend-angular-dfs-23",
 });
 
+// Middleware pour vérifier le token JWT
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (token == null) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, "your_secret_key", (err, user) => {
+    if (err) {
+      return res.sendStatus(403);
+    }
+
+    req.user = user;
+    next();
+  });
+}
+
 // Connexion à la base de données
 connection.connect((err) => {
   if (err) {
@@ -95,8 +114,14 @@ app.put("/article/:id", (req, res) => {
 });
 
 // Route pour supprimer un article
-app.delete("/article/:id", (req, res) => {
+app.delete("/article/:id", authenticateToken, (req, res) => {
   const articleId = req.params.id;
+
+  if (req.user.admin != 1) {
+    res.sendStatus(403);
+    return;
+  }
+
   connection.query("DELETE FROM article WHERE id = ?", [articleId], (err) => {
     if (err) {
       console.error("Erreur lors de la suppression de l'article :", err);
@@ -104,6 +129,7 @@ app.delete("/article/:id", (req, res) => {
       return;
     }
     res.sendStatus(204);
+    return;
   });
 });
 
