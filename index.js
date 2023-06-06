@@ -80,9 +80,20 @@ app.get("/article/:id", (req, res) => {
   );
 });
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage }).array("fichier");
+
 // Route pour créer un nouvel article
-app.post("/article", (req, res) => {
-  const article = req.body;
+app.post("/article", upload, (req, res) => {
+  const article = JSON.parse(req.body.article);
   connection.query("INSERT INTO article SET ?", article, (err, result) => {
     if (err) {
       console.error("Erreur lors de la création de l'article :", err);
@@ -95,9 +106,9 @@ app.post("/article", (req, res) => {
 });
 
 // Route pour mettre à jour un article
-app.put("/article/:id", (req, res) => {
+app.put("/article/:id", upload, (req, res) => {
   const articleId = req.params.id;
-  const article = req.body;
+  const article = JSON.parse(req.body.article);
   connection.query(
     "UPDATE article SET ? WHERE id = ?",
     [article, articleId],
