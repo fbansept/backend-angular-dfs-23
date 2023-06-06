@@ -85,7 +85,11 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname);
+    const article = JSON.parse(req.body.article);
+    const extension = file.originalname.split(".").pop();
+    const nomImage = "image_article_" + article.title + "." + extension;
+    req.nomImage = nomImage;
+    cb(null, nomImage);
   },
 });
 
@@ -94,6 +98,11 @@ const upload = multer({ storage: storage }).array("fichier");
 // Route pour créer un nouvel article
 app.post("/article", upload, (req, res) => {
   const article = JSON.parse(req.body.article);
+
+  if (req.nomImage) {
+    article.nom_image = req.nomImage;
+  }
+
   connection.query("INSERT INTO article SET ?", article, (err, result) => {
     if (err) {
       console.error("Erreur lors de la création de l'article :", err);
