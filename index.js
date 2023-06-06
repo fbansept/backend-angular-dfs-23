@@ -8,6 +8,8 @@ const jwt = require("jsonwebtoken");
 
 app.use(cors());
 
+app.use(express.static("uploads"));
+
 // Configuration de la base de données
 const connection = mysql.createConnection({
   host: "localhost",
@@ -118,6 +120,11 @@ app.post("/article", upload, (req, res) => {
 app.put("/article/:id", upload, (req, res) => {
   const articleId = req.params.id;
   const article = JSON.parse(req.body.article);
+
+  if (req.nomImage) {
+    article.nom_image = req.nomImage;
+  }
+
   connection.query(
     "UPDATE article SET ? WHERE id = ?",
     [article, articleId],
